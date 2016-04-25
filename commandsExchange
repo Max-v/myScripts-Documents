@@ -1,0 +1,97 @@
+{ # --- Create mailbox On-Premise
+	
+		$objReport.UUA.nNewMailboxReqCount++
+		Message("Create mailbox for `""+$objUser.Name.Value+"`" in database "+$strMailboxDatabase) $nLogChangesInfo
+	
+		try {
+			$objMailbox = Enable-Mailbox -Identity $strUserLogin -Alias $strUserLogin -Database $strMailboxDatabase
+			$objReport.UUA.nNewMailboxCount++
+		}
+		catch {
+			WriteErr $_ ("create mailbox for `""+$objUser.Name.Value+"`"")
+			return $false
+		}
+	}
+-----------------------------------------------------------------------------------
+Enable-RemoteMailbox $objUser.userPrincipalName.Value -Alias $strUserLogin -RemoteRoutingAddress $strEmailAddresses 
+
+Disable-RemoteMailbox $objUserAccount.userPrincipalName.Value 
+--------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+
+function ConnectToMsolService
+{
+	if ($bMsolServiceConnected -eq $true) { return $true }
+	
+	$script:bMsolServiceConnected = $false
+	
+	Message "Connect to MSOL sevice..." $nLogInfo
+	
+	try {
+		$SecurePassword = $strMsolAdminPas | ConvertTo-SecureString -AsPlainText -Force
+		$objCredentials = New-Object System.Management.Automation.PSCredential -ArgumentList $strMsolAdminLog, $SecurePassword
+	}
+	catch {
+		WriteErr $_ "prepare credentials for MSOL sevice"
+		return $false
+	}
+	
+	try {
+		$objO365Session = New-PSSession -ConfigurationName Microsoft.Exchange `
+			-ConnectionUri "https://ps.outlook.com/powershell" -Credential $objCredentials `
+			-Authentication Basic -AllowRedirection 
+		Import-PSSession $objO365Session -AllowClobber -Prefix "O365"
+		Import-Module MSOnline
+		Connect-MSOLService -Credential $objCredentials
+	}
+	catch {
+		WriteErr $_ "connect to MSOL sevice"
+		return $false
+	}
+	
+	$script:bMsolServiceConnected = $true
+	return $true
+}
+
+-------------------------------------------------
+
+
+CLS
+
+$strSrvName="imb-mx-ca02"
+
+
+$Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$strSrvName/PowerShell/
+
+Import-PSSession $Session
+it@imb.com.ua 
+
+
+##GET-MESSAGETRAKINGLOG
+get-messagetrackinglog -Recipients:lab@platinumbank.com.ua -Start $aa -End $bb -EventId receive | select timestamp,eventid,sender,recipients,messagesubject |Out-html
+
+
+$aa=get-date("25.04.2016 08:00:00")
+$aa
+$bb=get-date("26.04.2016 08:00:00")
+$bb
+
+Set-MailboxAutoReplyConfiguration -Identity "EShcherbina@platinumbank.com.ua" -AutoReplyState  Scheduled -StartTime $aa  -EndTime $bb -InternalMessage "Добрый день, я сегодня вне офиса, по срочным вопросам обращайтесь пожалуйста к Елене Мардаль OMardal@platinumbank.com.ua, тел +380503861646  Спасибо.  "
+
+Get-MailboxAutoReplyConfiguration -Identity "EShcherbina@platinumbank.com.ua"
+
+
+
+
+
+
+get-messagetrackinglog -Recipients:it@imb.com.ua -Start $aa -End $bb|Out-GridView
+
+
+Remove-PSSession $Session
+
+
+
+
+
